@@ -110,7 +110,7 @@
             dep.notify();
         }
 
-        function udpate(value) {
+        function update(value) {
             observe(val = value);
         }
             
