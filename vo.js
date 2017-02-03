@@ -99,19 +99,31 @@
 
     function reactor(obj, key, val) {
         let dep = new Dep();
+
+        function listen() {
+            if (Dep.target) {
+                dep.listen(Dep.target);
+            }
+        }
+
+        function notify() {
+            dep.notify();
+        }
+
+        function udpate(value) {
+            observe(val = value);
+        }
             
         Object.defineProperty(obj, key, {
             configurable: true,
             enumerable: true,
             get() {
-                if (Dep.target) {
-                    dep.listen(Dep.target);
-                }
+                listen();
                 return val;
             },
             set(value) {
-                val = value;
-                dep.notify();
+                update(value);
+                notify();
             }
         });
 
