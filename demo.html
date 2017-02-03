@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Observer</title>
+</head>
+<body>
+    <script src="vo.js"></script>
+    <script>
+        let data = {
+            a: 1,
+            b: {
+                c: 3,
+                d: 4
+            }
+        };
+
+        vo(data).watch('b.c', (val) => {
+            console.log(val);
+        });
+
+        data.b.c = 2;
+        data.b.c = 4;
+    </script>
+</body>
+</html>
