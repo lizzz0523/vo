@@ -2,24 +2,23 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <title>Observer</title>
+    <title>basic</title>
 </head>
 <body>
-    <script src="vo.js"></script>
+    <input id="text" />
+    <p>hello <span id="span"></span></p>
+    <script src="../vo.js"></script>
     <script>
-        let data = {
-            a: 1,
-            b: {
-                c: 3,
-                d: 4
-            }
-        };
+        var data = { name: '' };
+        var span = document.querySelector('#span');
+        var text = document.querySelector('#text');
 
-        vo(data).watch('b.c', (val) => {
-            console.log(val);
+        vo(data).watch('name', (val) => {
+            span.innerHTML = val;
         });
 
-        data.b = { c: 2 };
+        text.addEventListener('input', () => {
+            data.name = text.value;
+        }, false);
     </script>
 </body>
-</html>
