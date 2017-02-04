@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>vdom</title>
+    <style>
+        .remove {
+            text-decoration: line-through;
+        }
+    </style>
+</head>
+<body>
+    <div id="app"></div>
+    <script src="./snabbdom.js"></script>
+    <script src="../../vo.js"></script>
+    <script>
+        var { h, patch } = snabbdom;
+        var app = document.querySelector('#app');
+
+        var data = {
+            remove: false
+        };
+
+        function render() {
+            return h('div', { on: { click: toggle } }, [
+                h('input', { attrs: { type: 'checkbox' }, props: { checked: data.remove }}),
+                h('span', { class: { remove: data.remove } }, 'some message')
+            ]);
+        }
+
+        function toggle() {
+            data.remove = !data.remove;
+        }
+
+        vo(data).watch(render, (newVal, val) => {
+            if (val) {
+                patch(val, newVal);
+            } else {
+                patch(app, newVal);
+            }
+        }, true);
+    </script>
+</body>
+</html>

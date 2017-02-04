@@ -17,11 +17,13 @@ class Observable {
         }
     }
 
-    watch(key, fn) {
+    watch(key, fn, sync) {
+        let opts = typeof sync === 'object' ? sync : { sync };
+
         if (typeof key === 'function') {
-            watch(key.bind(this.obj), fn);
+            watch(key.bind(this.obj), fn, opts);
         } else {
-            watch(this.obj, key, fn);
+            watch(this.obj, key, fn, opts);
         }
     }
 }
@@ -71,10 +73,11 @@ export function observe(obj) {
     return obj.__ob__;
 }
 
-export function watch(obj, key, fn) {
+export function watch(obj, key, fn, opts) {
     let exp;
 
     if (typeof obj === 'function') {
+        opts = fn;
         exp = obj;
         fn = key;
     } else {
@@ -90,7 +93,11 @@ export function watch(obj, key, fn) {
         };
     }
 
-    let sub = new Subscriber(exp, fn);
+    let sub = new Subscriber(exp, fn, opts);
+
+    if (opts.sync) {
+        fn.call(sub, sub.value);
+    }
 
     return function () {
         sub.active = false;
