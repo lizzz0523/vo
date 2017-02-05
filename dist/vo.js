@@ -184,157 +184,6 @@ var isPlainObject = exports.isPlainObject = function isPlainObject(obj) {
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
-exports.watch = undefined;
-
-var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
-
-var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
-
-exports.observe = observe;
-
-var _utils = __webpack_require__(1);
-
-var _Publisher = __webpack_require__(0);
-
-var _Publisher2 = _interopRequireDefault(_Publisher);
-
-var _Subscriber = __webpack_require__(3);
-
-var _Subscriber2 = _interopRequireDefault(_Subscriber);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
-
-var Observable = function () {
-    function Observable(obj) {
-        _classCallCheck(this, Observable);
-
-        this.obj = obj;
-        this.pub = null;
-
-        if ((0, _utils.isArray)(obj)) {
-            obj.forEach(function (val) {
-                observe(val);
-            });
-        } else if ((0, _utils.isPlainObject)(obj)) {
-            Object.keys(obj).forEach(function (key) {
-                reactor(obj, key, obj[key]);
-            });
-        }
-    }
-
-    _createClass(Observable, [{
-        key: 'watch',
-        value: function watch(key, fn, sync) {
-            var opts = (typeof sync === 'undefined' ? 'undefined' : _typeof(sync)) === 'object' ? sync : { sync: sync };
-
-            if (typeof key === 'function') {
-                _watch(key.bind(this.obj), fn, opts);
-            } else {
-                _watch(this.obj, key, fn, opts);
-            }
-        }
-    }]);
-
-    return Observable;
-}();
-
-function reactor(obj, key, val) {
-    var pub = new _Publisher2.default(),
-        ob = observe(val);
-
-    if (ob) {
-        ob.pub = pub;
-    }
-
-    Object.defineProperty(obj, key, {
-        configurable: true,
-        enumerable: true,
-        get: function get() {
-            listen();
-            return val;
-        },
-        set: function set(value) {
-            update(value);
-            notify();
-        }
-    });
-
-    function listen() {
-        var sub = _Publisher2.default.target;
-
-        if (sub) {
-            sub.add(pub);
-        }
-    }
-
-    function notify() {
-        pub.notify();
-    }
-
-    function update(value) {
-        val = value;
-        ob = observe(val);
-
-        if (ob) {
-            ob.pub = pub;
-        }
-    }
-}
-
-function observe(obj) {
-    if (!obj.hasOwnProperty('__ob__')) {
-        if ((0, _utils.isArray)(obj) || (0, _utils.isPlainObject)(obj)) {
-            obj.__ob__ = new Observable(obj);
-        }
-    }
-
-    return obj.__ob__;
-}
-
-function _watch(obj, key, fn, opts) {
-    var exp = void 0;
-
-    if (typeof obj === 'function') {
-        opts = fn;
-        exp = obj;
-        fn = key;
-    } else {
-        exp = function exp() {
-            var keypath = key.split('.'),
-                value = obj;
-
-            keypath.forEach(function (key) {
-                value = value[key];
-            });
-
-            return value;
-        };
-    }
-
-    var sub = new _Subscriber2.default(exp, fn, opts);
-
-    if (opts.sync) {
-        fn.call(sub, sub.value);
-    }
-
-    return function () {
-        sub.active = false;
-    };
-}
-exports.watch = _watch;
-
-/***/ }),
-/* 3 */
-/***/ (function(module, exports, __webpack_require__) {
-
-"use strict";
-
-
-Object.defineProperty(exports, "__esModule", {
-    value: true
-});
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
@@ -457,13 +306,214 @@ var Subscriber = function () {
 exports.default = Subscriber;
 
 /***/ }),
+/* 3 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+var proto = Array.prototype,
+    array = Object.create(proto);
+
+var hijack = ['push', 'pop', 'shift', 'unshift', 'splice', 'sort', 'reverse'];
+
+hijack.forEach(function (method) {
+    var native = proto[method];
+
+    array[method] = function () {
+        var ob = this.__ob__;
+
+        var args = [].slice.call(arguments, 0);
+
+        var result = native.apply(this, args),
+            insert = [];
+
+        switch (method) {
+            case 'push':
+            case 'unshift':
+                insert = args;
+                break;
+            case 'splice':
+                insert = args.slice(2);
+                break;
+        }
+
+        ob.walk(insert);
+        ob.pub.notify();
+
+        return result;
+    };
+});
+
+exports.default = array;
+
+/***/ }),
 /* 4 */
 /***/ (function(module, exports, __webpack_require__) {
 
 "use strict";
 
 
-module.exports = __webpack_require__(2);
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+exports.watch = undefined;
+
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+exports.observe = observe;
+
+var _utils = __webpack_require__(1);
+
+var _Publisher = __webpack_require__(0);
+
+var _Publisher2 = _interopRequireDefault(_Publisher);
+
+var _Subscriber = __webpack_require__(2);
+
+var _Subscriber2 = _interopRequireDefault(_Subscriber);
+
+var _array = __webpack_require__(3);
+
+var _array2 = _interopRequireDefault(_array);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Observable = function () {
+    function Observable(obj) {
+        _classCallCheck(this, Observable);
+
+        this.obj = obj;
+        this.pub = null;
+
+        if ((0, _utils.isArray)(obj)) {
+            // 劫持array的核心方法
+            obj.__proto__ = _array2.default;
+        }
+
+        this.walk(obj);
+    }
+
+    _createClass(Observable, [{
+        key: 'walk',
+        value: function walk(obj) {
+            if ((0, _utils.isArray)(obj)) {
+                obj.forEach(function (val) {
+                    observe(val);
+                });
+            } else if ((0, _utils.isPlainObject)(obj)) {
+                Object.keys(obj).forEach(function (key) {
+                    reactor(obj, key, obj[key]);
+                });
+            }
+        }
+    }, {
+        key: 'watch',
+        value: function watch(key, fn, sync) {
+            var opts = (typeof sync === 'undefined' ? 'undefined' : _typeof(sync)) === 'object' ? sync : { sync: sync };
+
+            if (typeof key === 'function') {
+                _watch(key.bind(this.obj), fn, opts);
+            } else {
+                _watch(this.obj, key, fn, opts);
+            }
+        }
+    }]);
+
+    return Observable;
+}();
+
+function reactor(obj, key, val) {
+    var pub = new _Publisher2.default(),
+        ob = observe(val);
+
+    if (ob) {
+        ob.pub = pub;
+    }
+
+    Object.defineProperty(obj, key, {
+        configurable: true,
+        enumerable: true,
+        get: function get() {
+            listen();
+            return val;
+        },
+        set: function set(value) {
+            update(value);
+            notify();
+        }
+    });
+
+    function listen() {
+        var sub = _Publisher2.default.target;
+
+        if (sub) {
+            sub.add(pub);
+        }
+    }
+
+    function notify() {
+        pub.notify();
+    }
+
+    function update(value) {
+        val = value;
+        ob = observe(val);
+
+        if (ob) {
+            ob.pub = pub;
+        }
+    }
+}
+
+function observe(obj) {
+    if (!obj.hasOwnProperty('__ob__')) {
+        if ((0, _utils.isArray)(obj) || (0, _utils.isPlainObject)(obj)) {
+            obj.__ob__ = new Observable(obj);
+        }
+    }
+
+    return obj.__ob__;
+}
+
+function _watch(obj, key, fn, opts) {
+    var exp = void 0;
+
+    if (typeof obj === 'function') {
+        opts = fn;
+        exp = obj;
+        fn = key;
+    } else {
+        exp = function exp() {
+            var keypath = key.split('.'),
+                value = obj;
+
+            keypath.forEach(function (key) {
+                value = value[key];
+            });
+
+            return value;
+        };
+    }
+
+    var sub = new _Subscriber2.default(exp, fn, opts);
+
+    if (opts.sync) {
+        fn.call(sub, sub.value);
+    }
+
+    return function () {
+        sub.active = false;
+    };
+}
+exports.watch = _watch;
 
 /***/ })
 /******/ ]);

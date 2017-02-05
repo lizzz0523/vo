@@ -15,21 +15,39 @@
     <script src="../dist/vo.js"></script>
     <script>
         var { h, patch } = snabbdom;
-        var app = document.querySelector('#app');
 
         var data = {
-            remove: false
+            list: [
+                { message: 'some item', remove: false },
+                { message: 'other item', remove: true }
+            ]
         };
+        var app = document.querySelector('#app');
 
         function render() {
-            return h('div', { on: { click: toggle } }, [
-                h('input', { attrs: { type: 'checkbox' }, props: { checked: data.remove }}),
-                h('span', { class: { remove: data.remove } }, 'some message')
-            ]);
+            return (
+                h('div', [
+                    h('p', { on: { click: create } }, 'new item'),
+                    h('ul', data.list.map((item) => {
+                        return (
+                            h('li', { on: { click: toggle(item) } }, [
+                                h('input', { attrs: { type: 'checkbox' }, props: { checked: item.remove }}),
+                                h('span', { class: { remove: item.remove } }, item.message)
+                            ])
+                        );
+                    }))
+                ])
+            );
         }
 
-        function toggle() {
-            data.remove = !data.remove;
+        function create() {
+            data.list.push({ message: 'extra item', remove: false });
+        }
+
+        function toggle(item) {
+            return function () {
+                item.remove = !item.remove;
+            };
         }
 
         vo.observe(data).watch(render, (newVal, val) => {
