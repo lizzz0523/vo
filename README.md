@@ -17,7 +17,7 @@
             var span = document.querySelector('#span');
             var text = document.querySelector('#text');
 
-            vo(data).watch('name', (val) => {
+            vo.observe(data).watch('name', (val) => {
                 span.innerHTML = val;
             });
 
