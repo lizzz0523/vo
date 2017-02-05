@@ -2,16 +2,21 @@ var webpack = require('webpack'),
     path = require('path');
 
 module.exports = {
-    context: path.join(__dirname, 'src'),
+    context: path.join(__dirname, '..', 'src'),
     entry: './index.js',
     output: {
-        path: __dirname,
-        filename: 'vo.js',
+        path: path.join(__dirname, '..', 'dist'),
+        filename: 'vo.min.js',
         library: 'vo',
         libraryTarget: 'umd',
         umdNamedDefine: true
     },
     plugins: [
+        new webpack.DefinePlugin({
+            'process.env': {
+                NODE_ENV: 'production'
+            }
+        }),
         new webpack.optimize.UglifyJsPlugin({
             compress: {
                 warnings: false

@@ -1,1 +1,1 @@
-module.exports = require('./Observable').observe;
+module.exports = require('./core');

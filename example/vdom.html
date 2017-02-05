@@ -11,8 +11,8 @@
 </head>
 <body>
     <div id="app"></div>
-    <script src="./snabbdom.js"></script>
-    <script src="../../vo.js"></script>
+    <script src="lib/snabbdom.js"></script>
+    <script src="../dist/vo.js"></script>
     <script>
         var { h, patch } = snabbdom;
         var app = document.querySelector('#app');
@@ -32,7 +32,7 @@
             data.remove = !data.remove;
         }
 
-        vo(data).watch(render, (newVal, val) => {
+        vo.observe(data).watch(render, (newVal, val) => {
             if (val) {
                 patch(val, newVal);
             } else {

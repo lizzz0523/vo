@@ -5,6 +5,7 @@ import Subscriber from './Subscriber';
 class Observable {
     constructor(obj) {
         this.obj = obj;
+        this.pub = null;
 
         if (isArray(obj)) {
             obj.forEach((val) => {
@@ -29,22 +30,11 @@ class Observable {
 }
 
 function reactor(obj, key, val) {
-    let pub = new Publisher();
+    let pub = new Publisher(),
+        ob = observe(val);
 
-    function listen() {
-        let sub = Publisher.target;
-
-        if (sub) {
-            sub.add(pub);
-        }
-    }
-
-    function notify() {
-        pub.notify();
-    }
-
-    function update(value) {
-        observe(val = value);
+    if (ob) {
+        ob.pub = pub;
     }
         
     Object.defineProperty(obj, key, {
@@ -60,7 +50,26 @@ function reactor(obj, key, val) {
         }
     });
 
-    observe(val);
+    function listen() {
+        let sub = Publisher.target;
+
+        if (sub) {
+            sub.add(pub);
+        }
+    }
+
+    function notify() {
+        pub.notify();
+    }
+
+    function update(value) {
+        val = value;
+        ob = observe(val);
+
+        if (ob) {
+            ob.pub = pub;
+        }
+    }
 }
 
 export function observe(obj) {

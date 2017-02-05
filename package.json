@@ -4,7 +4,9 @@
   "description": "vo: data observable library",
   "main": "vo.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "./node_modules/.bin/webpack --config=./build/config.dev.js",
+    "pro": "./node_modules/.bin/webpack --config=./build/config.js",
+    "build": "npm run dev && npm run pro"
   },
   "repository": {
     "type": "git",
