@@ -1,7 +1,7 @@
 ## vo: data observable
 
 ### Usage:
-```
+```html
     <!DOCTYPE html>
     <html lang="en">
     <head>
