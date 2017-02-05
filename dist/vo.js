@@ -348,6 +348,14 @@ hijack.forEach(function (method) {
     };
 });
 
+array.set = function (index, value) {
+    return this.splice(index, 1, value);
+};
+
+array.del = function (index) {
+    return this.splice(index, 1);
+};
+
 exports.default = array;
 
 /***/ }),

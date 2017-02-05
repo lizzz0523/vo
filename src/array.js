@@ -31,4 +31,12 @@ hijack.forEach((method) => {
     };
 });
 
+array.set = function (index, value) {
+    return this.splice(index, 1, value);
+};
+
+array.del = function (index) {
+    return this.splice(index, 1);
+};
+
 export default array;
