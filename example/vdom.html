@@ -20,9 +20,10 @@
             list: [
                 { message: 'some item', remove: false },
                 { message: 'other item', remove: true }
-            ]
+            ],
+            text: ''
         };
-        
+
         var app = document.querySelector('#app');
 
         var ob = vo.proxy(data).watch(render, (newVal, val) => {
@@ -34,11 +35,15 @@
         }, true);
 
         function render() {
-            let list = this.list;
+            var list = this.list,
+                text = this.text;
 
             return (
                 h('div', [
-                    h('p', { on: { click: create(list) } }, 'new item'),
+                    h('p', [
+                        h('input', { on: { input: input }, props: { value: text } }),
+                        h('button', { on: { click: create } }, 'add')
+                    ]),
                     h('ul', list.map((item) => {
                         return (
                             h('li', { on: { click: toggle(item) } }, [
@@ -51,16 +56,19 @@
             );
         }
 
-        function create(list) {
-            return function() {
-                list.push({ message: 'extra item', remove: false });
-            };
-        }
-
         function toggle(item) {
             return function () {
                 item.remove = !item.remove;
             };
+        }
+
+        function create() {
+            ob.list.push({ message: ob.text, remove: false });
+            ob.text = '';
+        }
+
+        function input(event) {
+            ob.text = event.target.value;
         }
     </script>
 </body>
