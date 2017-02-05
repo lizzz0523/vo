@@ -17,12 +17,12 @@
             var span = document.querySelector('#span');
             var text = document.querySelector('#text');
 
-            vo.observe(data).watch('name', (val) => {
+            var ob = vo.proxy(data).watch('name', (val) => {
                 span.innerHTML = val;
             });
 
             text.addEventListener('input', () => {
-                data.name = text.value;
+                ob.name = text.value;
             }, false);
         </script>
     </body>

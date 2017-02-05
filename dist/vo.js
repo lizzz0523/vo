@@ -168,10 +168,28 @@ function toString(obj) {
     return Object.prototype.toString.call(obj);
 }
 
+var keys = exports.keys = Object.keys;
+var defineProperty = exports.defineProperty = Object.defineProperty;
+var defineProperties = exports.defineProperties = Object.defineProperties;
+
+var hasOwnProperty = exports.hasOwnProperty = function hasOwnProperty(obj, key) {
+    return obj.hasOwnProperty(key);
+};
+
 var isArray = exports.isArray = Array.isArray;
 
 var isPlainObject = exports.isPlainObject = function isPlainObject(obj) {
     return obj !== null && toString(obj) === '[object Object]';
+};
+
+var nextTick = exports.nextTick = function nextTick(fn) {
+    Promise.resolve().then(fn);
+};
+
+var warn = exports.warn = function warn(msg) {
+    if (development === 'development') {
+        console.warn(msg); // eslint-disable-line no-console
+    }
 };
 
 /***/ }),
@@ -187,11 +205,11 @@ Object.defineProperty(exports, "__esModule", {
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-var _utils = __webpack_require__(1);
-
 var _Publisher = __webpack_require__(0);
 
 var _Publisher2 = _interopRequireDefault(_Publisher);
+
+var _utils = __webpack_require__(1);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
@@ -374,9 +392,7 @@ var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol
 
 var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
 
-exports.observe = observe;
-
-var _utils = __webpack_require__(1);
+exports.proxy = proxy;
 
 var _Publisher = __webpack_require__(0);
 
@@ -390,6 +406,8 @@ var _array = __webpack_require__(3);
 
 var _array2 = _interopRequireDefault(_array);
 
+var _utils = __webpack_require__(1);
+
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
@@ -398,15 +416,13 @@ var Observable = function () {
     function Observable(obj) {
         _classCallCheck(this, Observable);
 
-        this.obj = obj;
-        this.pub = null;
-
         if ((0, _utils.isArray)(obj)) {
             // 劫持array的核心方法
             obj.__proto__ = _array2.default;
         }
 
-        this.walk(obj);
+        this.obj = this.walk(obj);
+        this.pub = null;
     }
 
     _createClass(Observable, [{
@@ -417,10 +433,10 @@ var Observable = function () {
                     observe(val);
                 });
             } else if ((0, _utils.isPlainObject)(obj)) {
-                Object.keys(obj).forEach(function (key) {
-                    reactor(obj, key, obj[key]);
-                });
+                obj = reactor(obj);
             }
+
+            return obj;
         }
     }, {
         key: 'watch',
@@ -428,67 +444,100 @@ var Observable = function () {
             var opts = (typeof sync === 'undefined' ? 'undefined' : _typeof(sync)) === 'object' ? sync : { sync: sync };
 
             if (typeof key === 'function') {
-                _watch(key.bind(this.obj), fn, opts);
+                _watch(key.bind(this), fn, opts);
             } else {
-                _watch(this.obj, key, fn, opts);
+                _watch(this, key, fn, opts);
             }
+
+            return this;
         }
     }]);
 
     return Observable;
 }();
 
-function reactor(obj, key, val) {
-    var pub = new _Publisher2.default(),
-        ob = observe(val);
+function reactor(obj) {
+    var props = {};
 
-    if (ob) {
-        ob.pub = pub;
-    }
+    (0, _utils.keys)(obj).forEach(function (key) {
+        var val = obj[key];
 
-    Object.defineProperty(obj, key, {
-        configurable: true,
-        enumerable: true,
-        get: function get() {
-            listen();
-            return val;
-        },
-        set: function set(value) {
-            update(value);
-            notify();
-        }
-    });
-
-    function listen() {
-        var sub = _Publisher2.default.target;
-
-        if (sub) {
-            sub.add(pub);
-        }
-    }
-
-    function notify() {
-        pub.notify();
-    }
-
-    function update(value) {
-        val = value;
-        ob = observe(val);
+        var pub = new _Publisher2.default(),
+            ob = observe(val);
 
         if (ob) {
             ob.pub = pub;
         }
-    }
+
+        function listen() {
+            var sub = _Publisher2.default.target;
+
+            if (sub) {
+                sub.add(pub);
+            }
+        }
+
+        function notify() {
+            pub.notify();
+        }
+
+        function update(value) {
+            val = value;
+            ob = observe(val);
+
+            if (ob) {
+                ob.pub = pub;
+            }
+        }
+
+        props[key] = {
+            configurable: true,
+            enumerable: true,
+            get: function get() {
+                listen();
+                return val;
+            },
+            set: function set(value) {
+                update(value);
+                notify();
+            }
+        };
+    });
+
+    return (0, _utils.defineProperties)(obj, props);
 }
 
 function observe(obj) {
-    if (!obj.hasOwnProperty('__ob__')) {
+    if (!(0, _utils.hasOwnProperty)(obj, '__ob__')) {
         if ((0, _utils.isArray)(obj) || (0, _utils.isPlainObject)(obj)) {
-            obj.__ob__ = new Observable(obj);
+            (0, _utils.defineProperty)(obj, '__ob__', {
+                value: new Observable(obj),
+                writable: true,
+                configurable: true
+            });
         }
     }
 
     return obj.__ob__;
+}
+
+function proxy(obj) {
+    var ob = observe(obj);
+
+    (0, _utils.keys)(obj).forEach(function (key) {
+        (0, _utils.defineProperty)(ob, key, {
+            configurable: true,
+            enumerable: true,
+            get: function get() {
+                return ob.obj[key];
+            },
+            set: function set(val) {
+                ob.obj[key] = val;
+            }
+        });
+    });
+
+    return ob;
 }
 
 function _watch(obj, key, fn, opts) {
@@ -514,7 +563,9 @@ function _watch(obj, key, fn, opts) {
     var sub = new _Subscriber2.default(exp, fn, opts);
 
     if (opts.sync) {
-        fn.call(sub, sub.value);
+        (0, _utils.nextTick)(function () {
+            fn.call(sub, sub.value);
+        });
     }
 
     return function () {

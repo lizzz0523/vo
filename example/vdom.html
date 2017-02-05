@@ -22,13 +22,24 @@
                 { message: 'other item', remove: true }
             ]
         };
+        
         var app = document.querySelector('#app');
 
+        var ob = vo.proxy(data).watch(render, (newVal, val) => {
+            if (val) {
+                patch(val, newVal);
+            } else {
+                patch(app, newVal);
+            }
+        }, true);
+
         function render() {
+            let list = this.list;
+
             return (
                 h('div', [
-                    h('p', { on: { click: create } }, 'new item'),
-                    h('ul', data.list.map((item) => {
+                    h('p', { on: { click: create(list) } }, 'new item'),
+                    h('ul', list.map((item) => {
                         return (
                             h('li', { on: { click: toggle(item) } }, [
                                 h('input', { attrs: { type: 'checkbox' }, props: { checked: item.remove }}),
@@ -40,8 +51,10 @@
             );
         }
 
-        function create() {
-            data.list.push({ message: 'extra item', remove: false });
+        function create(list) {
+            return function() {
+                list.push({ message: 'extra item', remove: false });
+            };
         }
 
         function toggle(item) {
@@ -49,14 +62,6 @@
                 item.remove = !item.remove;
             };
         }
-
-        vo.observe(data).watch(render, (newVal, val) => {
-            if (val) {
-                patch(val, newVal);
-            } else {
-                patch(app, newVal);
-            }
-        }, true);
     </script>
 </body>
 </html>

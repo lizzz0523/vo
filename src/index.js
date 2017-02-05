@@ -1,19 +1,21 @@
-import { isArray, isPlainObject } from './utils';
 import Publisher from './Publisher';
 import Subscriber from './Subscriber';
 import arrayProto from './array';
+import { 
+    keys, isArray, isPlainObject, nextTick,
+    hasOwnProperty, defineProperty, defineProperties
+} from './utils';
+
 
 class Observable {
     constructor(obj) {
-        this.obj = obj;
-        this.pub = null;
-
         if (isArray(obj)) {
             // 劫持array的核心方法
             obj.__proto__ = arrayProto;
         }
 
-        this.walk(obj);
+        this.obj = this.walk(obj);
+        this.pub = null;
     }
 
     walk(obj) {
@@ -22,74 +24,107 @@ class Observable {
                 observe(val);
             });
         } else if (isPlainObject(obj)) {
-            Object.keys(obj).forEach((key) => {
-                reactor(obj, key, obj[key]);
-            });
+            obj = reactor(obj);
         }
+
+        return obj;
     }
 
     watch(key, fn, sync) {
         let opts = typeof sync === 'object' ? sync : { sync };
 
         if (typeof key === 'function') {
-            watch(key.bind(this.obj), fn, opts);
+            watch(key.bind(this), fn, opts);
         } else {
-            watch(this.obj, key, fn, opts);
+            watch(this, key, fn, opts);
         }
+
+        return this;
     }
 }
 
-function reactor(obj, key, val) {
-    let pub = new Publisher(),
-        ob = observe(val);
+function reactor(obj) {
+    let props = {};
 
-    if (ob) {
-        ob.pub = pub;
-    }
-        
-    Object.defineProperty(obj, key, {
-        configurable: true,
-        enumerable: true,
-        get() {
-            listen();
-            return val;
-        },
-        set(value) {
-            update(value);
-            notify();
-        }
-    });
+    keys(obj).forEach((key) => {
+        let val = obj[key];
 
-    function listen() {
-        let sub = Publisher.target;
-
-        if (sub) {
-            sub.add(pub);
-        }
-    }
-
-    function notify() {
-        pub.notify();
-    }
-
-    function update(value) {
-        val = value;
-        ob = observe(val);
+        let pub = new Publisher(),
+            ob = observe(val);
 
         if (ob) {
             ob.pub = pub;
         }
-    }
+
+        function listen() {
+            let sub = Publisher.target;
+
+            if (sub) {
+                sub.add(pub);
+            }
+        }
+
+        function notify() {
+            pub.notify();
+        }
+
+        function update(value) {
+            val = value;
+            ob = observe(val);
+
+            if (ob) {
+                ob.pub = pub;
+            }
+        }
+            
+        props[key] = {
+            configurable: true,
+            enumerable: true,
+            get() {
+                listen();
+                return val;
+            },
+            set(value) {
+                update(value);
+                notify();
+            }
+        };
+    });
+
+    return defineProperties(obj, props);
 }
 
-export function observe(obj) {
-    if (!obj.hasOwnProperty('__ob__')) {
+function observe(obj) {
+    if (!hasOwnProperty(obj, '__ob__')) {
         if (isArray(obj) || isPlainObject(obj)) {
-            obj.__ob__ = new Observable(obj);
+            defineProperty(obj, '__ob__', {
+                value: new Observable(obj),
+                writable: true,
+                configurable: true
+            });
         }
     }
 
     return obj.__ob__;
+}
+
+export function proxy(obj) {
+    let ob = observe(obj);
+
+    keys(obj).forEach((key) => {
+        defineProperty(ob, key, {
+            configurable: true,
+            enumerable: true,
+            get() {
+                return ob.obj[key];
+            },
+            set(val) {
+                ob.obj[key] = val;
+            }
+        });
+    });
+
+    return ob;
 }
 
 export function watch(obj, key, fn, opts) {
@@ -115,7 +150,9 @@ export function watch(obj, key, fn, opts) {
     let sub = new Subscriber(exp, fn, opts);
 
     if (opts.sync) {
-        fn.call(sub, sub.value);
+        nextTick(() => {
+            fn.call(sub, sub.value);
+        });
     }
 
     return function () {

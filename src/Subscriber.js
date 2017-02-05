@@ -1,5 +1,5 @@
-import { warn } from './utils';
 import Publisher from './Publisher';
+import { warn } from './utils';
 
 let gid = 1;
 
