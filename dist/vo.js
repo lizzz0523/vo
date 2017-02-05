@@ -315,10 +315,10 @@ exports.default = Subscriber;
 Object.defineProperty(exports, "__esModule", {
     value: true
 });
+var hijack = ['push', 'pop', 'shift', 'unshift', 'splice', 'sort', 'reverse'];
+
 var proto = Array.prototype,
     array = Object.create(proto);
-
-var hijack = ['push', 'pop', 'shift', 'unshift', 'splice', 'sort', 'reverse'];
 
 hijack.forEach(function (method) {
     var native = proto[method];

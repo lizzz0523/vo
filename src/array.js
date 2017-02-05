@@ -1,8 +1,8 @@
+const hijack = ['push', 'pop', 'shift', 'unshift', 'splice', 'sort', 'reverse'];
+
 let proto = Array.prototype,
     array = Object.create(proto);
-
-let hijack = ['push', 'pop', 'shift', 'unshift', 'splice', 'sort', 'reverse'];
-
+    
 hijack.forEach((method) => {
     const native = proto[method];
 
